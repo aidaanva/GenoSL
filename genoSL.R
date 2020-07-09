@@ -31,7 +31,7 @@ parser <- add_argument(parser, '--output',
                        default = 'snpTable')
 parser <- add_argument(parser, '--fasta',
                        type = 'character',
-                       help = 'Include a fullAlignment.fasta to include the corrected genotyped bases for the sample',
+                       help = 'Indicate a fullAlignment.fasta to include the corrected genotyped bases for the sample',
                        default = 'None')
 argv <- parse_args(parser)
 
@@ -41,7 +41,7 @@ argv <- parse_args(parser)
 '%!in%' <- function(x,y)!('%in%'(x,y))
 
 genotyping <- function(df, forward, reverse, aReads, sampleName){
-  snpTable <- read.delim(df, sep = "\t", stringsAsFactors = F)
+  snpTable <- df 
   names<-colnames(snpTable)
   names <- replace(names, names==forward, "forwardReads")
   names <- replace(names, names==reverse, "reverseReads")
@@ -72,6 +72,18 @@ preparingAllTable <- function(df, sampleName){
   colnames(snpTableGenotyped) <- names
   return(snpTableGenotyped)
 }
+writingFasta <- function(df, output){
+  df2 <- df %>%
+    gather(Samples,Call, 3:ncol(.)) %>%
+    mutate(CallT = ifelse(Call==".", Ref, Call)) %>%
+    select(-Ref, -Call) %>%
+    spread(Position, CallT)
+    
+  write_tsv(df2, output, col_names = F)
+  outputFasta <- paste(output, "fasta", sep = ".")
+  system(paste("awk '{print \">\"$1; $1=\"\"; print $0}' OFS=", output, ">", outputFasta))
+  print("Fasta_dp saved")
+}
 fastatoTibble <- function(fasta) {
   fastaList <- seqinr::read.fasta(fasta, whole.header = T, forceDNAtolower = F)
   fastaM <- as_tibble(matrix(unlist(fastaList),
@@ -86,8 +98,9 @@ fastatoTibble <- function(fasta) {
   return(df_sampleRows)
   print("fastaToTibble Comple")
 }
+snpTable <- read.delim(argv$input, sep = "\t", stringsAsFactors = F)
 
-snpTableGT <- genotyping(argv$input, argv$nameForwardReads, argv$nameReverseReads, argv$allReads, argv$sampleName)
+snpTableGT <- genotyping(snpTable, argv$nameForwardReads, argv$nameReverseReads, argv$allReads, argv$sampleName)
 snpTable_c <- snpTableGT %>%
   select(-forwardReads, -reverseReads, -allReads) %>%
   preparingAllTable(argv$sampleName)
@@ -99,19 +112,26 @@ if(argv$fasta != "None" ){
   print("fullAlignment.fasta has been provided, start run with fasta mode")
   #Extract sequence to genotype (need to Figure out)
   baseNameFullFasta <- paste(argv$output, sampleName, "fullAlignment.fasta", sep = "_")
-  system(paste("awk '/^>/ {printf(\"\n%s\n\",$0);next; } { printf(\"%s\",$0);}  END {printf(\"\n\");}\' <'", args$fasta, "| grep -f id.txt -A 1 -m 1 >", baseNameFullFasta, sep = ""))
+  system(paste("echo '>OOH003_c' >", "~/trial.fasta"))
+  system(paste("awk '/OOH003_R/' RS='>'", "/projects1/pestis/lnba_paper_2020/vcfAnalysis/AAV_3X_snps_LNBAeager2_2020-06-11/fullAlignment.fasta", "| tail -n +2",">>", "~/trial.fasta", sep = " "))
   fastaFull <- fastatoTibble("~/extracted.fasta")
-}
+  basesToChange <- snpTableGT %>% select(Position, genotypedSample) %>% gather(Genome, Call, ncol(.))
+  fastaFull %>%
+    mutate(CorrectedCall=ifelse(Position %in% basesToChange, basesToChange$Call, Call))
+  }
 
 allIncluded <- paste(argv$output, argv$sampleName, "allColumns.tsv", sep = "_")
-corrected <- paste(argv$output, argv$sampleName, "c.tsv", sep = "")
+corrected <- paste(argv$output, argv$sampleName, "c.tsv", sep = "_")
+fastaFile <- paste(argv$output, argv$sampleName, sep = "_")
+
+writingFasta(snpTable_c, fastaFile)
 
 write_tsv(snpTable_AllIncluded, allIncluded)
 write_tsv(snpTable_c, corrected)
 
-snpTableForFasta <-snpTable_c %>% gather(Samples,Call, 3:ncol(.))
-snpTableForFasta$Call = ifelse(snpTableForFasta$Call==".", as.character(snpTableForFasta$Ref),as.character(snpTableForFasta$Call))
-snpTable_c_fsnpalignment <- snpTableForFasta %>%
-  spread(Samples, Call)
-forFasta <- paste(argv$output, argv$sampleName,"c_forfasta.tsv", sep = "")
-write_tsv(snpTable_c_fsnpalignment, forFasta)
+#snpTableForFasta <-snpTable_c %>% gather(Samples,Call, 3:ncol(.))
+#snpTableForFasta$Call = ifelse(snpTableForFasta$Call==".", as.character(snpTableForFasta$Ref),as.character(snpTableForFasta$Call))
+#snpTable_c_fsnpalignment <- snpTableForFasta %>%
+#  spread(Samples, Call)
+#forFasta <- paste(argv$output, argv$sampleName,"c_forfasta.tsv", sep = "")
+#write_tsv(snpTable_c_fsnpalignment, forFasta)
