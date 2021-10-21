@@ -30,3 +30,14 @@ optional arguments:
   -f, --fasta   Indicate a fullAlignment.fasta to include the corrected
                 genotyped bases for the sample [default: None]
 ```
+
+## Input
+Table: table.tsv containing genomes to Genotype.
+The table should be formated as:
+| sampleName | All              |	Reverse           | Forward            |
+|------------|------------------|--------------------|--------------------|
+| Sample1    |Sample1AllReadsVCF| Sample1ReverseReads| Sample1ForwardReads|
+| Sample2    |Sample2AllReadsVCF| Sample2ReverseReads| Sample2ForwardReads|
+| Sample3    |Sample3AllReadsVCF| Sample3ReverseReads| Sample3ForwardReads|
+
+Note: The names specified for each samples must correspond to the column name in the snpTable.tsv produced by MultiVCFAnalyzer
