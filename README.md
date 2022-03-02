@@ -27,8 +27,6 @@ optional arguments:
   -x, --opts    RDS file containing argument values
   -o, --output  Specify root of output name, default is snpTable
                 [default: snpTable]
-  -f, --fasta   Indicate a fullAlignment.fasta to include the corrected
-                genotyped bases for the sample [default: None]
 ```
 
 ## Input
