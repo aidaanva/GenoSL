@@ -115,17 +115,17 @@ for (row in 1:nrow(genoTable)) {
 }
 
 
-if(argv$fasta != "None" ){
-  print("fullAlignment.fasta has been provided, start run with fasta mode")
+#if(argv$fasta != "None" ){
+#  print("fullAlignment.fasta has been provided, start run with fasta mode")
   #Extract sequence to genotype (need to Figure out)
-  baseNameFullFasta <- paste(argv$output, sampleName, "fullAlignment.fasta", sep = "_")
-  system(paste("echo '>OOH003_c' >", "~/trial.fasta"))
-  system(paste("awk '/OOH003_R/' RS='>'", "/projects1/pestis/lnba_paper_2020/vcfAnalysis/AAV_3X_snps_LNBAeager2_2020-06-11/fullAlignment.fasta", "| tail -n +2",">>", "~/trial.fasta", sep = " "))
-  fastaFull <- fastatoTibble("~/extracted.fasta")
-  basesToChange <- snpTableGT %>% select(Position, genotypedSample) %>% gather(Genome, Call, ncol(.))
-  fastaFull %>%
-    mutate(CorrectedCall=ifelse(Position %in% basesToChange, basesToChange$Call, Call))
-  }
+#  baseNameFullFasta <- paste(argv$output, sampleName, "fullAlignment.fasta", sep = "_")
+#  system(paste("echo '>OOH003_c' >", "~/trial.fasta"))
+#  system(paste("awk '/OOH003_R/' RS='>'", "/projects1/pestis/lnba_paper_2020/vcfAnalysis/AAV_3X_snps_LNBAeager2_2020-06-11/fullAlignment.fasta", "| tail -n +2",">>", "~/trial.fasta", sep = " "))
+#  fastaFull <- fastatoTibble("~/extracted.fasta")
+#  basesToChange <- snpTableGT %>% select(Position, genotypedSample) %>% gather(Genome, Call, ncol(.))
+#  fastaFull %>%
+#    mutate(CorrectedCall=ifelse(Position %in% basesToChange, basesToChange$Call, Call))
+#  }
 
 allIncluded <- paste(argv$output, "allColumns.tsv", sep = "_")
 corrected <- paste(argv$output, "genotyped.tsv", sep = "_")
