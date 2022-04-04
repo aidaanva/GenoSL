@@ -2,6 +2,7 @@
 library(argparser)
 library(tidyverse)
 library(seqinr)
+library(data.table)
 
 
 parser <- argparser::arg_parser( 'Genotypes single stranded libraries based on forward and reverse mapping reads to account for potential damage',
@@ -77,30 +78,33 @@ writingFasta <- function(df, output){
   write_tsv(df2, output, col_names = F)
   outputFasta <- paste(output, "fasta", sep = ".")
   system(paste("awk '{print \">\"$1; $1=\"\"; print $0}' OFS=", output, ">", outputFasta))
-  system(paste("rm",output))
+  #system(paste("rm",output))
   print("Fasta_dp saved")
 }
 fastatoTibble <- function(fasta) {
   fastaList <- seqinr::read.fasta(fasta, whole.header = T, forceDNAtolower = F)
-  fastaM <- as_tibble(matrix(unlist(fastaList),
+  fastaM <- data.table(matrix(unlist(fastaList),
                              nrow = length(fastaList),
-                             byrow = T),
-                      .name_repair = "universal")
+                             byrow = T))
   fastaM$Genome <- names(fastaList)
   df_sampleRows <- fastaM %>%
-    pivot_longer(-contains("Genome"), names_to = "PositionIn",values_to = "Call") %>%
-    mutate(Position = gsub("...", "", PositionIn)) %>%
-    select(-PositionIn)
+    pivot_longer(-contains("Genome"), names_to = "Position",values_to = "Call") %>%
+    mutate(Position = gsub("V", "", Position)) #%>%
+    #select(-PositionIn)
   return(df_sampleRows)
   print("fastaToTibble Comple")
 }
 
 ### END FUNCTIONS
 
+print("Reading snpTable and genoTable")
 snpTable <- read.delim(argv$input, sep = "\t", stringsAsFactors = F, check.names = F)
-genoTable <- read.delim(argv$table, sep = "\t", stringsAsFactors = F, check.names = F)
+genoTable <- read.delim(argv$table, sep = "\t", stringsAsFactors = F, check.names = F) 
+#%>% 
+ # mutate(sampleNameGen = paste(sampleName, "c", sep = "_"))
 snpTableGT <- snpTable
 
+print ("snpTable and genoTable done. Genotyping started")
 for (row in 1:nrow(genoTable)) {
   nameForwardReads <- genoTable[row, "Forward"]
   nameReverseReads <- genoTable[row, "Reverse"]
@@ -114,19 +118,8 @@ for (row in 1:nrow(genoTable)) {
 #  snpTable_AllIncluded <- preparingAllTable(snpTableGT, sampleName)
 }
 
-
-#if(argv$fasta != "None" ){
-#  print("fullAlignment.fasta has been provided, start run with fasta mode")
-  #Extract sequence to genotype (need to Figure out)
-#  baseNameFullFasta <- paste(argv$output, sampleName, "fullAlignment.fasta", sep = "_")
-#  system(paste("echo '>OOH003_c' >", "~/trial.fasta"))
-#  system(paste("awk '/OOH003_R/' RS='>'", "/projects1/pestis/lnba_paper_2020/vcfAnalysis/AAV_3X_snps_LNBAeager2_2020-06-11/fullAlignment.fasta", "| tail -n +2",">>", "~/trial.fasta", sep = " "))
-#  fastaFull <- fastatoTibble("~/extracted.fasta")
-#  basesToChange <- snpTableGT %>% select(Position, genotypedSample) %>% gather(Genome, Call, ncol(.))
-#  fastaFull %>%
-#    mutate(CorrectedCall=ifelse(Position %in% basesToChange, basesToChange$Call, Call))
-#  }
-
+print("Genotyping finished")
+#To do if a reference fasta is provided:
 allIncluded <- paste(argv$output, "allColumns.tsv", sep = "_")
 corrected <- paste(argv$output, "genotyped.tsv", sep = "_")
 fastaFile <- paste(argv$output, "genotyped", sep = "_")
@@ -135,7 +128,46 @@ snpTable_c <- snpTableGT[,!names(snpTableGT) %in% genoTable$All]
 snpTable_c <- snpTable_c[,!names(snpTable_c) %in% genoTable$Reverse]
 snpTable_c <- snpTable_c[,!names(snpTable_c) %in% genoTable$Forward]
 
+
+if(argv$fasta != "None" ){
+  print("fullAlignment.fasta has been provided, start run with fasta mode")
+  #Extract sequence to genotype (need to Figure out)
+  fullFasta <- seqinr::read.fasta(argv$fasta, whole.header = T, forceDNAtolower = F)
+  print("fullFasta read")
+  #Remove Forward and Reverse entries in the fasta
+  fullFastamod <- fullFasta[names(fullFasta) %in% c(genoTable$Reverse,genoTable$Forward) == FALSE]
+  #Select only genotyped data
+  genotypedOnly <- snpTable_c %>%
+    select(Position, Ref, genotyped_samples$sampleCorrected) %>%
+    mutate_at(vars(-Position, -Ref),
+              funs(case_when(
+                . == "." ~ Ref,
+                TRUE ~ .)))
+  #For loop to modify vectors within the fullFasta list
+  "Include genotyping in fullFasta"
+  for(i in genoTable$sampleName){
+    name <- paste(i, "c", sep = "_")
+    names(fullFastamod)[names(fullFastamod) == i] <- "name"
+    posToChange <- genotypedOnly %>% select(Position, name)
+    names <-colnames(posToChange)
+    names <- replace(names, names==name, "name")
+    colnames(posToChange) <- names
+    fullFastamod$name[posToChange$Position] <- posToChange$name
+    names(fullFastamod)[names(fullFastamod) == "name"] <- name
+  }
+  
+  fullfastaFile <- paste(argv$output, "genotyped", "fullAlignment", sep = "_")
+  seqinr::write.fasta(sequences = fullFastamod, names = names(fullFastamod), nbchar = 80, file.out = fullfastaFile)
+  
+  print("fullAlignment.fasta genotyped saved")
+  
+}
+
+print("writing genotyped snpTable & snpFasta")
+
 writingFasta(snpTable_c, fastaFile)
 
 write_tsv(snpTableGT, allIncluded)
 write_tsv(snpTable_c, corrected)
+
+print("All done!")
