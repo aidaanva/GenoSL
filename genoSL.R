@@ -78,7 +78,7 @@ writingFasta <- function(df, output){
   write_tsv(df2, output, col_names = F)
   outputFasta <- paste(output, "fasta", sep = ".")
   system(paste("awk '{print \">\"$1; $1=\"\"; print $0}' OFS=", output, ">", outputFasta))
-  #system(paste("rm",output))
+  system(paste("rm",output))
   print("Fasta_dp saved")
 }
 fastatoTibble <- function(fasta) {
@@ -99,9 +99,8 @@ fastatoTibble <- function(fasta) {
 
 print("Reading snpTable and genoTable")
 snpTable <- read.delim(argv$input, sep = "\t", stringsAsFactors = F, check.names = F)
-genoTable <- read.delim(argv$table, sep = "\t", stringsAsFactors = F, check.names = F) 
-#%>% 
- # mutate(sampleNameGen = paste(sampleName, "c", sep = "_"))
+genoTable <- read.delim(argv$table, sep = "\t", stringsAsFactors = F, check.names = F) %>% 
+  mutate(sampleCorrected = paste(sampleName, "c", sep = "_"))
 snpTableGT <- snpTable
 
 print ("snpTable and genoTable done. Genotyping started")
@@ -138,7 +137,7 @@ if(argv$fasta != "None" ){
   fullFastamod <- fullFasta[names(fullFasta) %in% c(genoTable$Reverse,genoTable$Forward) == FALSE]
   #Select only genotyped data
   genotypedOnly <- snpTable_c %>%
-    select(Position, Ref, genotyped_samples$sampleCorrected) %>%
+    select(Position, Ref, genoTable$sampleCorrected) %>%
     mutate_at(vars(-Position, -Ref),
               funs(case_when(
                 . == "." ~ Ref,
@@ -156,7 +155,7 @@ if(argv$fasta != "None" ){
     names(fullFastamod)[names(fullFastamod) == "name"] <- name
   }
   
-  fullfastaFile <- paste(argv$output, "genotyped", "fullAlignment", sep = "_")
+  fullfastaFile <- paste(argv$output, "genotyped", "fullAlignment.fasta", sep = "_")
   seqinr::write.fasta(sequences = fullFastamod, names = names(fullFastamod), nbchar = 80, file.out = fullfastaFile)
   
   print("fullAlignment.fasta genotyped saved")
