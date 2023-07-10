@@ -78,7 +78,7 @@ writingFasta <- function(df, output){
   write_tsv(df2, output, col_names = F)
   outputFasta <- paste(output, "fasta", sep = ".")
   system(paste("awk '{print \">\"$1; $1=\"\"; print $0}' OFS=", output, ">", outputFasta))
-  system(paste("rm",output))
+  lsystem(paste("rm",output))
   print("Fasta_dp saved")
 }
 fastatoTibble <- function(fasta) {
