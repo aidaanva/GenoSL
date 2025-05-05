@@ -1,28 +1,46 @@
 #!/usr/bin/env Rscript
-library(argparser)
+
+if (!require('optparse')) {
+  install.packages('optparse')
+} else {library(optparse)}
 library(tidyverse)
 library(seqinr)
 
 
-parser <- argparser::arg_parser( 'Genotypes single stranded libraries based on forward and reverse mapping reads to account for potential damage',
-                                 name = 'genoSL.R')
-parser <- add_argument(parser, 'input',
-                       type='character',
-                       nargs=1,
-                       help='Path to the snpTable.tsv produced by MultiVCFAnalyzer')
-parser <- add_argument(parser, 'table',
-                       type = 'character',
-                       nargs = 1,
-                       help = 'Path to table.tsv containing genomes to Genotype. See README.md for specific formating')
-parser <- add_argument(parser, '--output',
-                       type = 'character',
-                       help = 'Specify root of output name, default is snpTable',
-                       default = 'snpTable')
-parser <- add_argument(parser, '--fasta',
-                       type = 'character',
-                       help = 'Indicate a fullAlignment.fasta to include the corrected genotyped bases for the sample',
-                       default = 'None')
-argv <- parse_args(parser)
+parser <- OptionParser(usage = "%prog [options] /path/to/MultiVCFAnalyzer_snpTable.tsv /path/to/sample_to_genotype_table.tsv")
+
+parser <- add_option(parser, c("-o", "--outDir"), type = 'character',
+                     action = "store", dest = "output",
+                     help= "Specify root of output name, default is snpTable",
+                     default = "snpTable")
+parser <- add_option(parser, c("-f", "--fasta"), type = 'character',
+                     action = "store", dest = "fasta",
+                     help= "Indicate a fullAlignment.fasta to include the corrected genotyped bases for the sample",
+                     default = "None")
+
+argv <- parse_args(parser, positional_arguments = 2)
+opts <- argv$options
+
+
+#parser <- argparser::arg_parser( 'Genotypes single stranded libraries based on forward and reverse mapping reads to account for potential damage',
+#                                 name = 'genoSL.R')
+#parser <- add_argument(parser, 'input',
+#                        type='character',
+#                        nargs=1,
+#                        help='Path to the snpTable.tsv produced by MultiVCFAnalyzer')
+# parser <- add_argument(parser, 'table',
+#                        type = 'character',
+#                        nargs = 1,
+#                        help = 'Path to table.tsv containing genomes to Genotype. See README.md for specific formating')
+# parser <- add_argument(parser, '--output',
+#                        type = 'character',
+#                        help = 'Specify root of output name, default is snpTable',
+#                        default = 'snpTable')
+# parser <- add_argument(parser, '--fasta',
+#                        type = 'character',
+#                        help = 'Indicate a fullAlignment.fasta to include the corrected genotyped bases for the sample',
+#                        default = 'None')
+# argv <- parse_args(parser)
 
 
 ##FUNCTIONS:
@@ -97,8 +115,8 @@ fastatoTibble <- function(fasta) {
 
 ### END FUNCTIONS
 
-snpTable <- read.delim(argv$input, sep = "\t", stringsAsFactors = F, check.names = F)
-genoTable <- read.delim(argv$table, sep = "\t", stringsAsFactors = F, check.names = F)
+snpTable <- read.delim(argv$args[1], sep = "\t", stringsAsFactors = F, check.names = F)
+genoTable <- read.delim(argv$args[2], sep = "\t", stringsAsFactors = F, check.names = F)
 snpTableGT <- snpTable
 
 for (row in 1:nrow(genoTable)) {
@@ -115,7 +133,7 @@ for (row in 1:nrow(genoTable)) {
 }
 
 
-#if(argv$fasta != "None" ){
+#if(opts$fasta != "None" ){
 #  print("fullAlignment.fasta has been provided, start run with fasta mode")
   #Extract sequence to genotype (need to Figure out)
 #  baseNameFullFasta <- paste(argv$output, sampleName, "fullAlignment.fasta", sep = "_")
@@ -127,9 +145,9 @@ for (row in 1:nrow(genoTable)) {
 #    mutate(CorrectedCall=ifelse(Position %in% basesToChange, basesToChange$Call, Call))
 #  }
 
-allIncluded <- paste(argv$output, "allColumns.tsv", sep = "_")
-corrected <- paste(argv$output, "genotyped.tsv", sep = "_")
-fastaFile <- paste(argv$output, "genotyped", sep = "_")
+allIncluded <- paste(opts$output, "allColumns.tsv", sep = "_")
+corrected <- paste(opts$output, "genotyped.tsv", sep = "_")
+fastaFile <- paste(opts$output, "genotyped", sep = "_")
 
 snpTable_c <- snpTableGT[,!names(snpTableGT) %in% genoTable$All]
 snpTable_c <- snpTable_c[,!names(snpTable_c) %in% genoTable$Reverse]
