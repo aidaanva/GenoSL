@@ -5,6 +5,7 @@ Script to genotype single stranded libraries based on forward and reverse read m
 Requirements: have a working installation of conda. 
 
 Clone this github directory. 
+
 Create conda environment by running:
 ```bash
 conda env create -f environment.yaml
