@@ -5,6 +5,7 @@ if (!require('optparse')) {
 } else {library(optparse)}
 library(tidyverse)
 library(seqinr)
+sessionInfo()
 
 
 parser <- OptionParser(usage = "%prog [options] /path/to/MultiVCFAnalyzer_snpTable.tsv /path/to/sample_to_genotype_table.tsv")
@@ -20,27 +21,6 @@ parser <- add_option(parser, c("-f", "--fasta"), type = 'character',
 
 argv <- parse_args(parser, positional_arguments = 2)
 opts <- argv$options
-
-
-#parser <- argparser::arg_parser( 'Genotypes single stranded libraries based on forward and reverse mapping reads to account for potential damage',
-#                                 name = 'genoSL.R')
-#parser <- add_argument(parser, 'input',
-#                        type='character',
-#                        nargs=1,
-#                        help='Path to the snpTable.tsv produced by MultiVCFAnalyzer')
-# parser <- add_argument(parser, 'table',
-#                        type = 'character',
-#                        nargs = 1,
-#                        help = 'Path to table.tsv containing genomes to Genotype. See README.md for specific formating')
-# parser <- add_argument(parser, '--output',
-#                        type = 'character',
-#                        help = 'Specify root of output name, default is snpTable',
-#                        default = 'snpTable')
-# parser <- add_argument(parser, '--fasta',
-#                        type = 'character',
-#                        help = 'Indicate a fullAlignment.fasta to include the corrected genotyped bases for the sample',
-#                        default = 'None')
-# argv <- parse_args(parser)
 
 
 ##FUNCTIONS:
